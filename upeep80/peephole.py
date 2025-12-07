@@ -23,6 +23,19 @@ class Target(Enum):
     Z80 = auto()
 
 
+class InputSyntax(Enum):
+    """Input assembly syntax.
+
+    I8080: Input uses 8080 mnemonics (MOV, MVI, LXI, etc.)
+           Will be translated to Z80 if target is Z80.
+    Z80: Input already uses Z80 mnemonics (LD, JP, etc.)
+         Skips 8080 pattern phases and translation.
+    """
+
+    I8080 = auto()
+    Z80 = auto()
+
+
 # 8080 to Z80 mnemonic translations
 Z80_TRANSLATIONS: dict[str, str] = {
     # Arithmetic
@@ -144,9 +157,18 @@ class PeepholeOptimizer:
     Patterns are applied repeatedly until no more changes are made.
     """
 
-    def __init__(self, target: Target = Target.Z80) -> None:
+    def __init__(
+        self,
+        target: Target = Target.Z80,
+        input_syntax: InputSyntax | None = None,
+    ) -> None:
         self.target = target
+        # Default: input syntax matches target (Z80 target expects Z80 input now)
+        if input_syntax is None:
+            input_syntax = InputSyntax.Z80 if target == Target.Z80 else InputSyntax.I8080
+        self.input_syntax = input_syntax
         self.patterns = self._init_patterns()
+        self.z80_patterns = self._init_z80_patterns()  # Native Z80 patterns
         self.stats: dict[str, int] = {}
         # Track label positions for relative jump optimization
         self.label_positions: dict[str, int] = {}
@@ -986,12 +1008,171 @@ class PeepholeOptimizer:
             # Complex - skip for now
         ]
 
+    def _init_z80_patterns(self) -> list[PeepholePattern]:
+        """Initialize Z80-native peephole patterns.
+
+        These patterns work directly on Z80 mnemonics (LD, JP, etc.)
+        for compilers that generate native Z80 assembly.
+        """
+        return [
+            # Push/Pop elimination: PUSH rr; POP rr -> (nothing)
+            PeepholePattern(
+                name="z80_push_pop_same",
+                pattern=[("PUSH", None), ("POP", None)],
+                replacement=[],
+                condition=lambda ops: ops[0][1].upper() == ops[1][1].upper(),
+            ),
+            # Redundant LD: LD A,r; LD r,A -> LD A,r
+            PeepholePattern(
+                name="z80_redundant_ld",
+                pattern=[("LD", "A,*"), ("LD", "*,A")],
+                replacement=None,  # Keep first only
+                condition=lambda ops: ops[0][1].split(",")[1].upper() == ops[1][1].split(",")[0].upper(),
+            ),
+            # Zero A: LD A,0 -> XOR A (smaller, faster)
+            PeepholePattern(
+                name="z80_zero_a_ld",
+                pattern=[("LD", "A,0")],
+                replacement=[("XOR", "A")],
+            ),
+            # Compare to zero: CP 0 -> OR A (sets Z flag, smaller)
+            PeepholePattern(
+                name="z80_cp_zero",
+                pattern=[("CP", "0")],
+                replacement=[("OR", "A")],
+            ),
+            # Load then store same address: LD A,(addr); LD (addr),A -> LD A,(addr)
+            PeepholePattern(
+                name="z80_load_store_same",
+                pattern=[("LD", "A,(*)")],  # Will need special handling
+                replacement=None,
+            ),
+            # Double INC: INC HL; INC HL (keep as-is, 2 bytes vs 4 for LD+ADD)
+            # Zero register pair: LD HL,0 -> (can't improve, 3 bytes)
+
+            # Redundant duplicate LD: LD X,Y; LD X,Y -> LD X,Y
+            PeepholePattern(
+                name="z80_duplicate_ld",
+                pattern=[("LD", None), ("LD", None)],
+                replacement=None,  # Keep first only
+                condition=lambda ops: ops[0][1].upper() == ops[1][1].upper(),
+            ),
+            # LD A,A -> (nothing, useless)
+            PeepholePattern(
+                name="z80_ld_a_a",
+                pattern=[("LD", "A,A")],
+                replacement=[],
+            ),
+            # LD B,B, LD C,C, etc. -> (nothing)
+            PeepholePattern(
+                name="z80_ld_r_r",
+                pattern=[("LD", None)],
+                replacement=[],
+                condition=lambda ops: len(ops[0][1].split(",")) == 2 and
+                                      ops[0][1].split(",")[0].strip().upper() ==
+                                      ops[0][1].split(",")[1].strip().upper() and
+                                      ops[0][1].split(",")[0].strip().upper() in
+                                      ("A", "B", "C", "D", "E", "H", "L"),
+            ),
+            # INC A; DEC A -> (nothing)
+            PeepholePattern(
+                name="z80_inc_dec_a",
+                pattern=[("INC", "A"), ("DEC", "A")],
+                replacement=[],
+            ),
+            # DEC A; INC A -> (nothing)
+            PeepholePattern(
+                name="z80_dec_inc_a",
+                pattern=[("DEC", "A"), ("INC", "A")],
+                replacement=[],
+            ),
+            # INC HL; DEC HL -> (nothing)
+            PeepholePattern(
+                name="z80_inc_dec_hl",
+                pattern=[("INC", "HL"), ("DEC", "HL")],
+                replacement=[],
+            ),
+            # DEC HL; INC HL -> (nothing)
+            PeepholePattern(
+                name="z80_dec_inc_hl",
+                pattern=[("DEC", "HL"), ("INC", "HL")],
+                replacement=[],
+            ),
+            # ADD A,0 -> (nothing, doesn't change A, but clears carry - keep if carry matters)
+            # SUB 0 -> (nothing, but sets flags - keep for flag side effects)
+
+            # OR A; OR A -> OR A
+            PeepholePattern(
+                name="z80_double_or_a",
+                pattern=[("OR", "A"), ("OR", "A")],
+                replacement=[("OR", "A")],
+            ),
+            # AND A; AND A -> AND A
+            PeepholePattern(
+                name="z80_double_and_a",
+                pattern=[("AND", "A"), ("AND", "A")],
+                replacement=[("AND", "A")],
+            ),
+            # XOR A; XOR A -> XOR A (still zero)
+            PeepholePattern(
+                name="z80_double_xor_a",
+                pattern=[("XOR", "A"), ("XOR", "A")],
+                replacement=[("XOR", "A")],
+            ),
+            # EX DE,HL; EX DE,HL -> (nothing)
+            PeepholePattern(
+                name="z80_double_ex",
+                pattern=[("EX", "DE,HL"), ("EX", "DE,HL")],
+                replacement=[],
+            ),
+            # PUSH HL; POP DE -> LD D,H; LD E,L (faster if registers free)
+            # Actually PUSH/POP is 11+10=21 cycles, LD D,H; LD E,L is 4+4=8 cycles!
+            PeepholePattern(
+                name="z80_push_pop_copy_hl_de",
+                pattern=[("PUSH", "HL"), ("POP", "DE")],
+                replacement=[("LD", "D,H"), ("LD", "E,L")],
+            ),
+            # PUSH DE; POP HL -> LD H,D; LD L,E
+            PeepholePattern(
+                name="z80_push_pop_copy_de_hl",
+                pattern=[("PUSH", "DE"), ("POP", "HL")],
+                replacement=[("LD", "H,D"), ("LD", "L,E")],
+            ),
+            # PUSH BC; POP DE -> LD D,B; LD E,C
+            PeepholePattern(
+                name="z80_push_pop_copy_bc_de",
+                pattern=[("PUSH", "BC"), ("POP", "DE")],
+                replacement=[("LD", "D,B"), ("LD", "E,C")],
+            ),
+            # PUSH BC; POP HL -> LD H,B; LD L,C
+            PeepholePattern(
+                name="z80_push_pop_copy_bc_hl",
+                pattern=[("PUSH", "BC"), ("POP", "HL")],
+                replacement=[("LD", "H,B"), ("LD", "L,C")],
+            ),
+            # JP to RET: JP label; ... label: RET -> RET (if unconditional)
+            # This is handled specially in jump threading
+
+            # SCF; CCF -> reset carry (OR A also works but affects other flags)
+            # CCF; SCF -> set carry (SCF alone works)
+            PeepholePattern(
+                name="z80_ccf_scf",
+                pattern=[("CCF", None), ("SCF", None)],
+                replacement=[("SCF", "")],
+            ),
+        ]
+
     def optimize(self, asm_text: str) -> str:
         """Optimize assembly text."""
         lines = asm_text.split("\n")
         changed = True
         passes = 0
         max_passes = 10
+
+        # For native Z80 input, skip 8080 phases entirely
+        if self.input_syntax == InputSyntax.Z80:
+            # Go directly to Z80 optimization phases
+            return self._optimize_z80_native(lines)
 
         # Phase 1: Apply universal 8080 patterns
         while changed and passes < max_passes:
@@ -1061,6 +1242,200 @@ class PeepholeOptimizer:
             lines, _ = self._dead_store_elimination(lines)
 
         return "\n".join(lines)
+
+    def _optimize_z80_native(self, lines: list[str]) -> str:
+        """
+        Optimize native Z80 assembly.
+
+        This is the optimization path for compilers that generate Z80 mnemonics
+        directly (LD, JP, etc.) rather than 8080 mnemonics. It skips the 8080
+        pattern matching and translation phases.
+
+        Phases:
+        1. Apply native Z80 patterns (LD A,0 -> XOR A, PUSH/POP elimination, etc.)
+        2. Apply existing Z80-specific patterns (from _optimize_z80_pass)
+        3. Jump threading (JP to JP -> direct JP)
+        4. Convert long jumps to relative jumps (JP -> JR where possible)
+        5. Apply Z80 patterns again (for DJNZ opportunities after JR conversion)
+        6. Dead store elimination
+        """
+        max_passes = 10
+
+        # Phase 1: Apply native Z80 patterns
+        changed = True
+        passes = 0
+        while changed and passes < max_passes:
+            changed = False
+            passes += 1
+            lines, did_change = self._apply_z80_native_patterns(lines)
+            if did_change:
+                changed = True
+
+        # Phase 2: Apply existing Z80-specific patterns
+        changed = True
+        passes = 0
+        while changed and passes < max_passes:
+            changed = False
+            passes += 1
+            lines, did_change = self._optimize_z80_pass(lines)
+            if did_change:
+                changed = True
+
+        # Phase 3: Jump threading
+        changed = True
+        passes = 0
+        while changed and passes < max_passes:
+            changed = False
+            passes += 1
+            lines, did_change = self._jump_threading_pass(lines)
+            if did_change:
+                changed = True
+
+        # Phase 4: Convert long jumps to relative jumps where possible
+        lines = self._convert_to_relative_jumps(lines)
+
+        # Phase 5: Apply Z80-specific patterns again (for DJNZ after JR conversion)
+        lines, _ = self._optimize_z80_pass(lines)
+
+        # Phase 6: Dead store elimination at procedure entry
+        lines, _ = self._dead_store_elimination(lines)
+
+        return "\n".join(lines)
+
+    def _apply_z80_native_patterns(self, lines: list[str]) -> tuple[list[str], bool]:
+        """
+        Apply native Z80 peephole patterns.
+
+        Similar to _optimize_pass but uses self.z80_patterns for native Z80 code.
+        """
+        result: list[str] = []
+        changed = False
+        i = 0
+
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.strip()
+
+            # Skip empty lines, comments, labels, directives
+            if not stripped or stripped.startswith(';') or stripped.endswith(':'):
+                result.append(line)
+                i += 1
+                continue
+
+            if stripped.startswith('.') or stripped.upper().startswith(('ORG', 'EQU', 'DB', 'DW', 'DS')):
+                result.append(line)
+                i += 1
+                continue
+
+            # Try to match each pattern
+            matched = False
+            for pattern in self.z80_patterns:
+                match_len = len(pattern.pattern)
+                if i + match_len > len(lines):
+                    continue
+
+                # Extract instructions for pattern matching
+                instrs: list[tuple[str, str]] = []
+                valid = True
+                for j in range(match_len):
+                    instr_line = lines[i + j].strip()
+                    if not instr_line or instr_line.startswith(';') or instr_line.endswith(':'):
+                        valid = False
+                        break
+                    parts = instr_line.split(None, 1)
+                    if not parts:
+                        valid = False
+                        break
+                    opcode = parts[0].upper()
+                    operands = parts[1].strip() if len(parts) > 1 else ""
+                    # Remove inline comments
+                    if ';' in operands:
+                        operands = operands.split(';')[0].strip()
+                    instrs.append((opcode, operands))
+
+                if not valid or len(instrs) != match_len:
+                    continue
+
+                # Check if pattern matches
+                if self._z80_pattern_matches(pattern, instrs):
+                    # Apply condition if present
+                    if pattern.condition and not pattern.condition(instrs):
+                        continue
+
+                    # Pattern matched!
+                    self.stats[pattern.name] = self.stats.get(pattern.name, 0) + 1
+                    changed = True
+                    matched = True
+
+                    # Apply replacement
+                    if pattern.replacement is None:
+                        # Keep first instruction only (for redundant patterns)
+                        result.append(lines[i])
+                        i += match_len
+                    elif pattern.replacement == []:
+                        # Delete all matched instructions
+                        i += match_len
+                    else:
+                        # Replace with new instructions
+                        for opcode, operands in pattern.replacement:
+                            if operands:
+                                result.append(f"    {opcode} {operands}")
+                            else:
+                                result.append(f"    {opcode}")
+                        i += match_len
+                    break
+
+            if not matched:
+                result.append(line)
+                i += 1
+
+        return result, changed
+
+    def _z80_pattern_matches(
+        self, pattern: PeepholePattern, instrs: list[tuple[str, str]]
+    ) -> bool:
+        """Check if instructions match a Z80 pattern."""
+        if len(instrs) != len(pattern.pattern):
+            return False
+
+        for (actual_op, actual_operands), (pat_op, pat_operands) in zip(
+            instrs, pattern.pattern
+        ):
+            # Check opcode
+            if actual_op != pat_op:
+                return False
+
+            # Check operands
+            if pat_operands is None:
+                # None means any operands
+                continue
+            elif pat_operands.endswith("*)"):
+                # Pattern like "A,(*)" - match A,<anything in parens>
+                prefix = pat_operands[:-2]
+                if not actual_operands.upper().startswith(prefix.upper()):
+                    return False
+                rest = actual_operands[len(prefix):]
+                if not (rest.startswith("(") and rest.endswith(")")):
+                    return False
+            elif "*" in pat_operands:
+                # Wildcard pattern like "A,*"
+                parts = pat_operands.split("*")
+                if len(parts) == 2:
+                    prefix, suffix = parts
+                    if not actual_operands.upper().startswith(prefix.upper()):
+                        return False
+                    if suffix and not actual_operands.upper().endswith(suffix.upper()):
+                        return False
+                else:
+                    # Complex pattern, just check prefix
+                    if not actual_operands.upper().startswith(parts[0].upper()):
+                        return False
+            else:
+                # Exact match
+                if actual_operands.upper() != pat_operands.upper():
+                    return False
+
+        return True
 
     def _eliminate_useless_push_pop(self, lines: list[str]) -> tuple[list[str], bool]:
         """
@@ -2878,8 +3253,44 @@ class PeepholeOptimizer:
 
 
 def optimize_peephole(asm_text: str) -> str:
-    """Convenience function to apply peephole optimization."""
+    """Convenience function to apply peephole optimization.
+
+    By default, this now expects native Z80 assembly (LD, JP, etc.)
+    since that's the common use case for Z80 compilers.
+    """
     optimizer = PeepholeOptimizer()
+    return optimizer.optimize(asm_text)
+
+
+def optimize_z80(asm_text: str) -> str:
+    """Optimize native Z80 assembly.
+
+    Use this for compilers that generate Z80 mnemonics directly
+    (LD, JP, JR, IX, IY, etc.) rather than 8080 mnemonics.
+
+    This is the preferred function for modern Z80 compilers.
+    """
+    optimizer = PeepholeOptimizer(
+        target=Target.Z80,
+        input_syntax=InputSyntax.Z80,
+    )
+    return optimizer.optimize(asm_text)
+
+
+def optimize_8080(asm_text: str, target: Target = Target.Z80) -> str:
+    """Optimize 8080 assembly, optionally translating to Z80.
+
+    Use this for compilers that generate 8080 mnemonics (MOV, MVI, etc.).
+    If target is Z80, the output will be translated to Z80 mnemonics.
+
+    Args:
+        asm_text: Assembly text using 8080 mnemonics
+        target: Target processor (I8080 or Z80)
+    """
+    optimizer = PeepholeOptimizer(
+        target=target,
+        input_syntax=InputSyntax.I8080,
+    )
     return optimizer.optimize(asm_text)
 
 
