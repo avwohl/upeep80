@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "upeep80"
-version = "0.1.0"
+version = "0.1.1"
 description = "Universal peephole and AST optimizer for 8080/Z80 compilers"
 readme = "README.md"
 requires-python = ">=3.10"
