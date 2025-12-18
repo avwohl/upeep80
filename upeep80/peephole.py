@@ -1998,6 +1998,11 @@ class PeepholeOptimizer:
             return f"JP NC,{operands}"
         if opcode == "JM":
             return f"JP M,{operands}"
+        if opcode == "JP" and "," not in operands and operands not in ("0", "5", "(HL)"):
+            # 8080 JP = Jump if Plus (sign flag = 0)
+            # Z80 JP without condition = unconditional, so we need JP P,
+            # But "JP 0" and "JP 5" are Z80 unconditional jumps to BDOS, keep as-is
+            return f"JP P,{operands}"
         if opcode == "JPE":
             return f"JP PE,{operands}"
         if opcode == "JPO":
