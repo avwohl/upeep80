@@ -1912,12 +1912,12 @@ class PeepholeOptimizer:
             rp = Z80_REG_PAIRS.get(operands.upper(), operands)
             return f"LD ({rp}),A"
 
-        # ADD r -> ADD A,r
-        if opcode == "ADD" and not operands.startswith("A,"):
+        # ADD r -> ADD A,r (but not ADD HL,rp / ADD IX,rp / ADD IY,rp which are Z80 16-bit adds)
+        if opcode == "ADD" and not operands.startswith(("A,", "HL,", "IX,", "IY,")):
             return f"ADD A,{operands}"
 
-        # ADC r -> ADC A,r
-        if opcode == "ADC" and not operands.startswith("A,"):
+        # ADC r -> ADC A,r (but not ADC HL,rp which is Z80 16-bit add with carry)
+        if opcode == "ADC" and not operands.startswith(("A,", "HL,")):
             return f"ADC A,{operands}"
 
         # SUB r -> SUB r (no change needed, Z80 SUB doesn't use A prefix)
