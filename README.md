@@ -1,4 +1,12 @@
-# upeep80 - Universal Peephole Optimizer for 8080/Z80
+# ⚠️ THIS PROJECT IS NO LONGER MAINTAINED ⚠️
+
+## Please use [peepz80](https://github.com/mwohls/peepz80) instead
+
+**peepz80** is the next generation successor to this project and is actively supported.
+
+---
+
+# upeep80 - Universal Peephole Optimizer for 8080/Z80 (ARCHIVED)
 
 A language-agnostic optimization library for 8080 and Z80 compilers.
 
