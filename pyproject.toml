@@ -38,10 +38,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/upeep80"
-Repository = "https://github.com/yourusername/upeep80"
-Documentation = "https://github.com/yourusername/upeep80/tree/main/docs"
-"Bug Tracker" = "https://github.com/yourusername/upeep80/issues"
+Homepage = "https://github.com/avwohl/upeep80"
+Repository = "https://github.com/avwohl/upeep80"
+Documentation = "https://github.com/avwohl/upeep80/tree/main/docs"
+"Bug Tracker" = "https://github.com/avwohl/upeep80/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

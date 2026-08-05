@@ -299,8 +299,3 @@ optimizer.add_pattern(custom_pattern)
 - Optimization levels 0-3 control aggressiveness
 - OptimizeFor controls size vs. speed tradeoffs
 
-## See Also
-
-- [API Reference](API.md)
-- [Optimization Guide](OPTIMIZATION_GUIDE.md)
-- [Custom Patterns](CUSTOM_PATTERNS.md)

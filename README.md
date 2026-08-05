@@ -61,7 +61,7 @@ pip install upeep80
 Or for development:
 
 ```bash
-git clone https://github.com/yourusername/upeep80.git
+git clone https://github.com/avwohl/upeep80.git
 cd upeep80
 pip install -e ".[dev]"
 ```
@@ -127,24 +127,11 @@ upeep80 is designed to be language-agnostic:
 
 ## Used By
 
-- **[uplm80](https://github.com/yourusername/uplm80)** - PL/M-80 compiler for Z80
-- **[uada80](https://github.com/yourusername/uada80)** - Ada compiler for Z80
-
-## Examples
-
-See the [examples/](examples/) directory for complete examples:
-
-- `optimize_ast.py` - AST optimization example
-- `optimize_asm.py` - Assembly peephole optimization example
-- `custom_patterns.py` - Custom peephole pattern definition
+- **[uplm80](https://github.com/avwohl/uplm80)** - PL/M-80 compiler for Z80
+- **[uada80](https://github.com/avwohl/uada80)** - Ada compiler for Z80
 
 ## Documentation
 
-Full documentation is available at [docs/](docs/):
-
-- [API Reference](docs/API.md)
-- [Optimization Guide](docs/OPTIMIZATION_GUIDE.md)
-- [Custom Patterns](docs/CUSTOM_PATTERNS.md)
 - [Integration Guide](docs/INTEGRATION.md)
 
 ## Development
@@ -178,7 +165,7 @@ Benchmarks on typical compiler workloads:
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome. Open an issue or a pull request.
 
 ## License
 
@@ -186,7 +173,7 @@ This project is licensed under the GNU General Public License v2.0 - see [LICENS
 
 ## History
 
-upeep80 was extracted from the [uplm80](https://github.com/yourusername/uplm80) project to provide a reusable optimization library for multiple retro compiler projects targeting the 8080/Z80 architecture.
+upeep80 was extracted from the [uplm80](https://github.com/avwohl/uplm80) project to provide a reusable optimization library for multiple retro compiler projects targeting the 8080/Z80 architecture.
 
 ## Acknowledgments
 
@@ -196,6 +183,6 @@ upeep80 was extracted from the [uplm80](https://github.com/yourusername/uplm80) 
 
 ## See Also
 
-- [uplm80](https://github.com/yourusername/uplm80) - PL/M-80 compiler
-- [uada80](https://github.com/yourusername/uada80) - Ada compiler for Z80
+- [uplm80](https://github.com/avwohl/uplm80) - PL/M-80 compiler
+- [uada80](https://github.com/avwohl/uada80) - Ada compiler for Z80
 - [Z80 CPU User Manual](http://www.z80.info/zip/z80cpu_um.pdf)
