@@ -1,8 +1,11 @@
 # ⚠️ THIS PROJECT IS NO LONGER MAINTAINED ⚠️
 
-## Please use [peepz80](https://github.com/mwohls/peepz80) instead
+If your compiler emits **pure lowercase Z80** mnemonics (`ld`, `jp`, `jr`), use
+[upeepz80](https://github.com/avwohl/upeepz80) instead — it is the maintained
+optimizer for that input.
 
-**peepz80** is the next generation successor to this project and is actively supported.
+upeep80 remains here for compilers that emit **8080** mnemonics (`MOV`, `MVI`,
+`LXI`) needing translation to Z80; upeepz80 does not handle that case.
 
 ---
 
