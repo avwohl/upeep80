@@ -5,7 +5,7 @@ A language-agnostic optimization library for compilers targeting
 the Intel 8080 and Zilog Z80 processors.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "upeep80 project"
 
 # Peephole optimizer is language-agnostic (works on assembly text)
