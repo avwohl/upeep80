@@ -19,41 +19,14 @@ upeep80 provides high-quality optimization passes for compilers targeting the In
 
 ## Features
 
-### AST-Level Optimizations
-- **Constant Folding**: Evaluate compile-time constant expressions
-- **Constant Propagation**: Replace variables with their constant values
-- **Algebraic Simplification**: x+0=x, x*1=x, x*0=0, etc.
-- **Strength Reduction**: Replace expensive operations with cheaper equivalents
-  - Multiply/divide by power-of-2 → shifts
-  - Modulo by power-of-2 → bitwise AND
-- **Dead Code Elimination**: Remove unreachable code
-- **Common Subexpression Elimination (CSE)**: Eliminate redundant calculations
-- **Copy Propagation**: Track variable aliases
-- **Dead Store Elimination**: Remove unused assignments
-- **Loop Optimizations**:
-  - Loop-invariant code motion
-  - Loop unrolling (configurable)
-- **Boolean Simplification**: x=x→true, x<>x→false
-- **Procedure Inlining**: Inline small procedures
+- **AST-level optimizations**: constant folding and propagation, algebraic
+  simplification, strength reduction, dead code and dead store elimination,
+  CSE, loop optimizations and procedure inlining
+- **Peephole optimizations** on 8080/Z80 assembly text, including 8080 to Z80
+  mnemonic translation
+- **Optimization levels** 0-3, and speed, size or balanced targets
 
-### Peephole Optimizations
-- **Pattern-based optimization** on Z80 assembly
-- **Redundant load/store elimination**
-- **Jump optimization** (including relative jumps for Z80)
-- **Stack operation combining**
-- **Register allocation cleanup**
-- **8080 to Z80 mnemonic translation**
-
-### Optimization Levels
-- **Level 0**: No optimization
-- **Level 1**: Basic (constant folding, algebraic simplification)
-- **Level 2**: Standard (+ strength reduction, dead code elimination)
-- **Level 3**: Aggressive (+ CSE, loop optimizations, inlining)
-
-### Optimization Targets
-- **Speed**: Optimize for execution speed
-- **Size**: Optimize for code size
-- **Balanced**: Balance between speed and size
+[docs/OPTIMIZATIONS.md](docs/OPTIMIZATIONS.md) lists every pass.
 
 ## Installation
 
@@ -109,25 +82,6 @@ print(f"Patterns applied: {optimizer.stats.patterns_applied}")
 print(f"Instructions eliminated: {optimizer.stats.instructions_eliminated}")
 ```
 
-## Architecture
-
-upeep80 is designed to be language-agnostic:
-
-### AST Optimizer
-- Works on generic expression trees
-- Requires minimal AST node interface:
-  - Binary/unary expressions
-  - Literals (integer, real)
-  - Identifiers
-  - Statements (assignment, if, loop, etc.)
-- Can be adapted to any language's AST
-
-### Peephole Optimizer
-- Works directly on assembly text
-- No knowledge of source language required
-- Pattern-based transformation engine
-- Configurable for 8080 or Z80 targets
-
 ## Used By
 
 - **[uplm80](https://github.com/avwohl/uplm80)** - PL/M-80 compiler for Z80
@@ -136,35 +90,9 @@ upeep80 is designed to be language-agnostic:
 ## Documentation
 
 - [Integration Guide](docs/INTEGRATION.md)
-
-## Development
-
-### Running Tests
-
-```bash
-pytest
-```
-
-### Type Checking
-
-```bash
-mypy upeep80
-```
-
-### Code Formatting
-
-```bash
-black upeep80
-ruff check upeep80
-```
-
-## Performance
-
-Benchmarks on typical compiler workloads:
-
-- AST optimization: ~10,000 nodes/second
-- Peephole optimization: ~50,000 instructions/second
-- Memory usage: ~100MB for typical compilation unit
+- [docs/OPTIMIZATIONS.md](docs/OPTIMIZATIONS.md) - every optimization pass, the optimization levels and targets, the architecture, and performance figures
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - running tests, type checking, code formatting
+- [CHANGELOG.md](CHANGELOG.md) - what changed in each version
 
 ## Contributing
 
