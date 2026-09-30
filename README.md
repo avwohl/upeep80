@@ -26,7 +26,7 @@ upeep80 provides high-quality optimization passes for compilers targeting the In
   mnemonic translation
 - **Optimization levels** 0-3, and speed, size or balanced targets
 
-[docs/OPTIMIZATIONS.md](docs/OPTIMIZATIONS.md) lists every pass.
+[docs/OPTIMIZATIONS.md](https://github.com/avwohl/upeep80/blob/main/docs/OPTIMIZATIONS.md) lists every pass.
 
 ## Installation
 
@@ -89,10 +89,10 @@ print(f"Instructions eliminated: {optimizer.stats.instructions_eliminated}")
 
 ## Documentation
 
-- [Integration Guide](docs/INTEGRATION.md)
-- [docs/OPTIMIZATIONS.md](docs/OPTIMIZATIONS.md) - every optimization pass, the optimization levels and targets, the architecture, and performance figures
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - running tests, type checking, code formatting
-- [CHANGELOG.md](CHANGELOG.md) - what changed in each version
+- [Integration Guide](https://github.com/avwohl/upeep80/blob/main/docs/INTEGRATION.md)
+- [docs/OPTIMIZATIONS.md](https://github.com/avwohl/upeep80/blob/main/docs/OPTIMIZATIONS.md) - every optimization pass, the optimization levels and targets, the architecture, and performance figures
+- [docs/DEVELOPMENT.md](https://github.com/avwohl/upeep80/blob/main/docs/DEVELOPMENT.md) - running tests, type checking, code formatting
+- [CHANGELOG.md](https://github.com/avwohl/upeep80/blob/main/CHANGELOG.md) - what changed in each version
 
 ## Contributing
 
@@ -100,7 +100,7 @@ Contributions are welcome. Open an issue or a pull request.
 
 ## License
 
-This project is licensed under the GNU General Public License v2.0 - see [LICENSE](LICENSE) for details.
+This project is licensed under the GNU General Public License v2.0 - see [LICENSE](https://github.com/avwohl/upeep80/blob/main/LICENSE) for details.
 
 ## History
 
