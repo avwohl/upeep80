@@ -1,11 +1,13 @@
 # ⚠️ THIS PROJECT IS NO LONGER MAINTAINED ⚠️
 
-If your compiler emits **pure lowercase Z80** mnemonics (`ld`, `jp`, `jr`), use
-[upeepz80](https://github.com/avwohl/upeepz80) instead — it is the maintained
-optimizer for that input.
+Do not use upeep80. Use [upeepz80](https://github.com/avwohl/upeepz80). It is
+the maintained optimizer, and it accepts lowercase Z80 mnemonics (`ld`, `jp`,
+`jr`).
 
-upeep80 remains here for compilers that emit **8080** mnemonics (`MOV`, `MVI`,
-`LXI`) needing translation to Z80; upeepz80 does not handle that case.
+upeepz80 does not accept 8080 mnemonics (`MOV`, `MVI`, `LXI`). If your compiler
+writes 8080 mnemonics, change the compiler to write Z80 mnemonics.
+
+All releases of upeep80 on PyPI are yanked. This repository is archived.
 
 ---
 
